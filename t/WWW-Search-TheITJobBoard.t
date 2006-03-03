@@ -10,19 +10,25 @@ use lib '../lib';
 use Test::More tests => 1;
 BEGIN { use_ok('WWW::Search::TheITJobBoard') };
 
-
 __END__
 
-my $oSearch = WWW::Search->new('TheITJobBoard', _debug=>undef);
+my $oSearch = WWW::Search->new('TheITJobBoard', _debug=>10);
 isa_ok($oSearch, 'WWW::Search::TheITJobBoard');
 
-my $sQuery = WWW::Search::escape_query("perl");
+my $sQuery = WWW::Search::escape_query("perl html");
 ok(defined($sQuery),'Query escaped');
 
-ok(defined($oSearch->native_query($sQuery)),'Native query');
-my $r = $oSearch->next_result();
-isa_ok($r, 'WWW::SearchResult');
+warn Dumper $oSearch;
 
+ok(defined($oSearch->native_query($sQuery,{jobtype=>0})),'Native query');
+my $hits = 0;
+while ( my $r = $oSearch->next_result() ){
+	++$hits;
+	isa_ok($r, 'WWW::SearchResult');
+}
+
+warn Dumper $oSearch;
+warn "Got $hits";
 
 #########################
 
