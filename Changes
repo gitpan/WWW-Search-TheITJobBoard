@@ -1,0 +1,6 @@
+Revision history for Perl extension WWW::Search::TheITJobBoard.
+
+0.01  Fri Mar  3 10:50:06 2006
+	- original version; created by h2xs 1.23 with options
+		-X -n WWW::Search::TheITJobBoard
+
