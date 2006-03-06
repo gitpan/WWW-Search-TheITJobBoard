@@ -1,5 +1,5 @@
 package WWW::Search::TheITJobBoard;
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 our $DEBUG   = 0;
 our $MAINTAINER = 'Lee Goddard <lgoddard -at- cpan -dot- org';
 
@@ -17,6 +17,8 @@ use HTML::TokeParser;
 
 WWW::Search::TheITJobBoard - search www.TheITJobBoard.co.uk
 
+=cut
+
 =head1 SYNOPSIS
 
 	use WWW::Search::TheITJobBoard;
@@ -24,15 +26,16 @@ WWW::Search::TheITJobBoard - search www.TheITJobBoard.co.uk
 	my $oSearch = WWW::Search->new('TheITJobBoard', _debug=>undef);
 	$oSearch->native_query(
 		WWW::Search::escape_query("perl"),
-		{
-			jobtype => 0,
-		}
+			jobtype => WWW::Search::TheITJobBoard::CONTRACT,
 	);
 	while (my $oResult = $oSearch->next_result){
 		warn Dumper $oResultr;
 	}
 
 
+=head1 DEPENDENCIES
+
+L<WWW::Search>, L<HTML::TokeParser>.
 
 =head1 DESCRIPTION
 
@@ -41,7 +44,15 @@ Gets jobs from the UK IT job site, I<The IT Job Board>.
 A sub-class of L<WWW::Search> that uses L<HTML::TokeParser> to return C<WWW::SearchResult> objects
 for each result found when querying C<www.theitjobboard.co.uk>.
 
-At the time of writing, valid options for The IT Job Board are as follows:
+One frustrating aspect of I<The IT Jobboard> is that, unlike I<JobServe> (L<WWW::Search::Jobserve)>,
+it doesn't provide an option to list jobs with full descriptions. So this module offers the ability
+to create such a list: provide the constructor parameter C<detailed>, with a value of C<html> or C<text>
+to get details as HTML or plain text. This will extend the C<WWW::SearchResult> objects' C<description> field,
+and also add a C<details> key, which is itself a hash with interesting keys such as C<location> and C<salary>
+- those keys come directly from the HTML page, so YMMV.
+
+At the time of writing, valid options for The IT Job Board search are as below. These should be passed
+to C<native_query>, as shown in the example.
 
 =over 4
 
@@ -51,7 +62,15 @@ THe keywords your target job description should contain. Default is C<perl>, of 
 
 =item jobtype
 
-Valid values are: C<1> for contract (our default), C<2> for permenant, and C<0> for either.
+Valid values are: C<1> for contract (our default), C<2> for permenant, and C<0> for either
+You may use constants: C<WWW::Search::TheITJobBoard::CONTRACT>, C<WWW::Search::TheITJobBoard::PERM>,
+C<WWW::Search::TheITJobBoard::ANY>.
+
+=cut
+
+use constant ANY  		=> 0;
+use constant CONTRACT	=> 1;
+use constant PERM 		=> 2;
 
 =item days
 
@@ -62,14 +81,27 @@ Our default is C<1>.
 
 Not especially relevant for us: valid values are C<1> to order by relevance to the keywords;
 C<2> to order by date posted; C<3> orders by salary; C<4> puts non-agency jobs first, which is the default.
+You may use constants: C<WWW::Search::TheITJobBoard::RELEVANCE>, C<WWW::Search::TheITJobBoard::DATE>,
+C<WWW::Search::TheITJobBoard::SALARY>, C<WWW::Search::TheITJobBoard::NONAGENCY>
+
+=cut
+
+use constant RELEVANCE	=> 1;
+use constant DATE		=> 2;
+use constant SALARY		=> 3;
+use constant NONAGENCY	=> 4;
+
 
 =item locations[]
 
-Ugly variable name. Default is to return all jobs, regardless. Valid values are:
+This ugly-named entity limits the search by location.
+The default is to return all jobs, regardless. Valid values are:
 C<undef> to return all jobs;
 C<180> for UK, C<124> for Netherlands, C<93> for Germany, C<69> for France,
 C<308> for Switzerland, C<170> for Republic Of Ireland, C<3> for Austria, C<301> for 'the rest Of the world,'
 C<254> for 'other European.'
+
+You may supply C<location> instead of C<location[]>, but you will still have to access the value you set via the latter.
 
 =item currpage
 
@@ -81,16 +113,6 @@ Defaults to C<en> for English, but you could try other two-letter ISO codes.
 
 =back
 
-=head1 DEPENDENCIES
-
-L<WWW::Search>, L<HTML::TokeParser>.
-
-=head1 BUGS
-
-Frankly, this is a quick first-stab at L<WWW::Search> sub-classing and this module. It passes the
-basic test, which is enough for my needs today, and as far as I can see, it conforms with L<WWW:Search>
-requirements. But please send bug reports via CPAN.
-
 =cut
 
 # "native_setup_search()" is invoked before the search. It is passed a
@@ -98,14 +120,22 @@ requirements. But please send bug reports via CPAN.
 # http://www.theitjobboard.co.uk/index.php?keywords=HTML&locations%5B%5D=&jobtype=1&days=2&orderby=3&submit=Search&task=JobSearch&xc=0&lang=en
 # Blx, it takes opts too
 
-=head2 METHOD native_setup_search
 
-Sets up default search parameters. B<NOTE> that the first argument is the same as the option C<keywords: see
-L<DESCRIPTION>, above.
+sub native_query {
+	my ($self, $native_query, $opts) = (shift, shift, ref($_[0])? shift : {@_});
+	return $self->SUPER::native_query( $native_query, $opts);
+}
 
-=cut
+# =head2 METHOD native_setup_search
+#
+# Sets up default search parameters. B<NOTE> that the first argument is the same as the option C<keywords: see
+# L<DESCRIPTION>, above. Unlike other modules in this namespace, you may provide options, after the query,
+# as either a reference to a hash, or as a list.
+#
+# =cut
 
-sub native_setup_search { my ($self, $native_query, $opts) = (shift, shift, shift);
+sub native_setup_search {
+	my ($self, $native_query, $opts) = (shift, shift, ref($_[0])? shift : {@_});
 	$self->user_agent('non-robot');
 	$self->{_hits_per_page} 			= 100;
 	$self->{_next_to_retrieve} 			= 1;
@@ -116,6 +146,10 @@ sub native_setup_search { my ($self, $native_query, $opts) = (shift, shift, shif
 	$self->{_options}->{task}			||= 'JobSearch';
 	$self->{_options}->{xc}				||= '0';
 	$self->{_options}->{lang}			||= 'en';
+	if ($self->{_options}->{locations}){
+		$self->{_options}->{'locations[]'} = $self->{_options}->{locations};
+		delete $self->{_options}->{locations};
+	}
 	$self->{_options}->{'locations[]'}	||= undef;  # 180=UK
 	$self->{_options}->{jobtype}		||= '1';    # 0=any, 1=contract, 2=perm
 	$self->{_options}->{days}			||= '1';	# 0=all, otherwise literal
@@ -131,15 +165,7 @@ sub native_setup_search { my ($self, $native_query, $opts) = (shift, shift, shif
 }
 
 
-sub preprocess_results_page {
-	my $self = shift;
-	my $html = shift;
-	warn " + RawHTML ===>$html<=== RawHTML\n" if 2 < $self->{_debug};
-	return $html;
-}
 
-
-# After WWW::Search::Yahoo::Advanced
 
 =head2 METHOD native_retrieve_some
 
@@ -147,6 +173,8 @@ Retrieve some results. Returns the number of results found. Will make as many HT
 as necessary to get to the maximum results you specify.
 
 =cut
+
+# After WWW::Search::Yahoo::Advanced
 
 sub native_retrieve_some { my $self = shift;
 	$self->{state} = WWW::Search::SEARCH_BEFORE;
@@ -182,8 +210,7 @@ sub native_retrieve_some { my $self = shift;
 			return undef;
 		}
 
-		# Pre-process the output: actually, we don't but may later.
-		my $html = $self->preprocess_results_page($self->{response}->content);
+		my $html = $self->{response}->content;
 
 		# Parse the output:
 		# No matches:
@@ -209,7 +236,7 @@ sub native_retrieve_some { my $self = shift;
 						print STDERR " --- unexpected result format (code 'a'): please inform author";
 						return undef;
 					}
-					my $title = $self->{_parser}->get_text("/a");
+					my $title = $self->{_parser}->get_trimmed_text("/a");
 					if (not $title){
 						print STDERR " --- unexpected result format (code '/a'): please inform author";
 						return undef;
@@ -219,7 +246,7 @@ sub native_retrieve_some { my $self = shift;
 						print STDERR " --- unexpected result format (code 'br'): please inform author";
 						return undef;
 					}
-					my $all = $self->{_parser}->get_text("/p");
+					my $all = $self->{_parser}->get_trimmed_text("/p");
 					if (not $token_br){
 						print STDERR " --- unexpected result format (code '/p'): please inform author";
 						return undef;
@@ -233,6 +260,67 @@ sub native_retrieve_some { my $self = shift;
 					$hit->title( $title );
 					$hit->description( $all );
 					$hit->change_date( $last_posted );
+
+					# Get the details, if user desires:
+					if ($self->{detailed}){
+						$hit->{details} = {} if not exists $hit->{details};
+						my $response = $self->http_request('GET', $hit->url);
+						print STDERR " +     got response for detail\n", $response->headers->as_string, "\n" if 2 <= $self->{_debug};
+						print STDERR " --- HTTP response for detail is:\n", $response->as_string if 4 < $self->{_debug};
+						if (! $response->is_success) {
+							if ($self->{_debug}) {
+								print STDERR " --- HTTP request for detail failed, response is:\n", $response->as_string;
+							}
+							return undef;
+						}
+						my $p = HTML::TokeParser->new(\$response->content);
+						# Get to the div id "jobdescription"
+						while (my $xtoken = $p->get_tag("div")){
+							last if $xtoken->[1]->{id} and $xtoken->[1]->{id} eq 'jobdescription';
+						}
+						# Just get text?
+						if (lc $self->{detailed} ne 'html'){
+							$hit->{description} = $p->get_trimmed_text('/div')
+						} else {
+							$hit->{description} = '';
+							while ($token = $p->get_token){ # reuse $token
+								if ($token->[0] eq 'S'){
+									$hit->{description} .= $token->[4];
+								}
+								elsif ($token->[0] eq 'S'){
+									$hit->{description} .= $token->[2];
+								}
+								elsif ($token->[0] eq 'T'){
+									$hit->{description} .= $token->[2];
+								}
+							}
+						}
+						# Get to the table after the div/id=jobparticulars and div/id=jobs
+						while (my $xtoken = $p->get_tag("div")){
+							last if $xtoken->[1]->{id} and $xtoken->[1]->{id} eq 'jobs';
+						}
+						$p->get_tag("table");
+						# use the table labels as hash keys - naughty...but nice!
+						my $key;
+						while (my $xtoken = $p->get_token){
+							last if $xtoken->[0] eq 'E' and $xtoken->[1] eq 'table';
+							next if $xtoken->[0] ne 'S' or $xtoken->[1] ne'td';
+							# Set the key
+							if (exists $xtoken->[2]->{class} and $xtoken->[2]->{class} eq 'jobslabel'){
+								$key = $p->get_trimmed_text('/td');
+								$key =~ s/\s+/_/sg;
+								$key =~ s/[^\w\d_]+//sg;
+								$key = lc $key;
+							}
+							# Set the value
+							elsif ($key) {
+								$hit->{details}->{$key} = $p->get_trimmed_text('/td');
+								undef $key;
+							}
+						} # Next token of details' table
+
+					} # End getting details
+
 					push @{$self->{cache}}, $hit;
 					$self->{_num_hits} ++;
 				} # End found job
@@ -277,6 +365,9 @@ sub native_retrieve_some { my $self = shift;
 
 __END__
 
+=head1 BUGS
+
+Posibly. Please use rt.cpan.org to report them.
 
 =head1 SEE ALSO
 

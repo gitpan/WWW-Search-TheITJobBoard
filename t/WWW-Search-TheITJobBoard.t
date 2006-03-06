@@ -8,19 +8,26 @@
 use Data::Dumper;
 use lib '../lib';
 use Test::More tests => 1;
-BEGIN { use_ok('WWW::Search::TheITJobBoard') };
+BEGIN { use_ok('WWW::Search::TheITJobBoard' => 0.03) };
 
-__END__
+ __END__
 
-my $oSearch = WWW::Search->new('TheITJobBoard', _debug=>10);
+my $oSearch = WWW::Search->new('TheITJobBoard', _debug=>10, detailed=>1,);
 isa_ok($oSearch, 'WWW::Search::TheITJobBoard');
+is($oSearch->{detailed}, 1, 'Passed arg');
+is(WWW::Search::TheITJobBoard::CONTRACT, 1, 'Constants');
 
 my $sQuery = WWW::Search::escape_query("perl html");
 ok(defined($sQuery),'Query escaped');
 
 warn Dumper $oSearch;
 
-ok(defined($oSearch->native_query($sQuery,{jobtype=>0})),'Native query');
+ok(defined($oSearch->native_query($sQuery,
+	jobtype			=> WWW::Search::TheITJobBoard::CONTRACT,
+	'location[]'	=> 180,
+	orderby			=> WWW::Search::TheITJobBoard::NONAGENCY,
+)),'Native query');
+
 my $hits = 0;
 while ( my $r = $oSearch->next_result() ){
 	++$hits;
