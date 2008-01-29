@@ -1,21 +1,21 @@
 package WWW::Search::TheITJobBoard;
-our $VERSION = '0.03';
-our $DEBUG   = 0;
-our $MAINTAINER = 'Lee Goddard <lgoddard -at- cpan -dot- org';
-
-our $WIN = ($^O =~ /Win/g); # For the Win32 bug
 
 use strict;
 use warnings;
 
-use base 'WWW::Search';
+our $VERSION = '0.04';
+our $DEBUG   = 0;
+our $MAINTAINER = 'Lee Goddard <lgoddard -at- cpan -dot- org';
 
+our $WIN = ($^O =~ /win\d/ig); # For the Win32 bug
+
+use base 'WWW::Search';
 use WWW::SearchResult;
 use HTML::TokeParser;
 
 =head1 NAME
 
-WWW::Search::TheITJobBoard - search www.TheITJobBoard.co.uk
+WWW::Search::TheITJobBoard - Search TheITJobBoard.com
 
 =cut
 
@@ -23,10 +23,10 @@ WWW::Search::TheITJobBoard - search www.TheITJobBoard.co.uk
 
 	use WWW::Search::TheITJobBoard;
 	use Data::Dumper;
-	my $oSearch = WWW::Search->new('TheITJobBoard', _debug=>undef);
+	my $oSearch = WWW::Search->new('TheITJobBoard', _debug => undef);
 	$oSearch->native_query(
 		WWW::Search::escape_query("perl"),
-			jobtype => WWW::Search::TheITJobBoard::CONTRACT,
+		jobtype => WWW::Search::TheITJobBoard::CONTRACT,
 	);
 	while (my $oResult = $oSearch->next_result){
 		warn Dumper $oResultr;
@@ -42,7 +42,7 @@ L<WWW::Search>, L<HTML::TokeParser>.
 Gets jobs from the UK IT job site, I<The IT Job Board>.
 
 A sub-class of L<WWW::Search> that uses L<HTML::TokeParser> to return C<WWW::SearchResult> objects
-for each result found when querying C<www.theitjobboard.co.uk>.
+for each result found when querying C<www.theitjobboard.com>.
 
 One frustrating aspect of I<The IT Jobboard> is that, unlike I<JobServe> (L<WWW::Search::Jobserve)>,
 it doesn't provide an option to list jobs with full descriptions. So this module offers the ability
@@ -117,7 +117,7 @@ Defaults to C<en> for English, but you could try other two-letter ISO codes.
 
 # "native_setup_search()" is invoked before the search. It is passed a
 # single argument: the escaped, native version of the query.
-# http://www.theitjobboard.co.uk/index.php?keywords=HTML&locations%5B%5D=&jobtype=1&days=2&orderby=3&submit=Search&task=JobSearch&xc=0&lang=en
+# http://www.theitjobboard.com/index.php?keywords=HTML&locations%5B%5D=&jobtype=1&days=2&orderby=3&submit=Search&task=JobSearch&xc=0&lang=en
 # Blx, it takes opts too
 
 
@@ -139,7 +139,7 @@ sub native_setup_search {
 	$self->user_agent('non-robot');
 	$self->{_hits_per_page} 			= 100;
 	$self->{_next_to_retrieve} 			= 1;
-	$self->{search_base_url} 			||= 'http://www.theitjobboard.co.uk';
+	$self->{search_base_url} 			||= 'http://www.theitjobboard.com';
 	$self->{search_base_path} 			||= '/index.php';
 	$self->{search_url}					||= $self->{search_base_url} . $self->{search_base_path};
 	$self->{_options}->{keywords}		||= $native_query || 'PERL';
@@ -380,17 +380,18 @@ Copyright (C) Lee Goddard, 2006. Some Rights Reserved.
 
 =head1 LICENCE
 
-This work is licensed under a I<Creative Commons Attribution-NonCommercial-ShareAlike 2.0 England &amp; Wales License>:
+This work is licensed under a I<Creative Commons Attribution-NonCommercial-ShareAlike 2.0 England and Wales License>:
 L<http://creativecommons.org/licenses/by-nc-sa/2.0/uk|http://creativecommons.org/licenses/by-nc-sa/2.0/uk>.
 
-=begin html
+=for html
 
 <!--Creative Commons License--><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/2.0/uk/"><img alt="Creative Commons License" border="0" src="http://creativecommons.org/images/public/somerights20.png"/></a>
 <br/>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/2.0/uk/">Creative Commons Attribution-NonCommercial-ShareAlike 2.0 England &amp; Wales License</a>.
 <!--/Creative Commons License-->
+
 =end html
 
-=begin xml
+=for xml
 
 <!-- <rdf:RDF xmlns="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 	<Work rdf:about="">

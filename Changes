@@ -1,5 +1,9 @@
 Revision history for Perl extension WWW::Search::TheITJobBoard.
 
+0.04  29 January 2008 
+	- Updated URI from .co.uk to .com to conform with site change
+	  ... ought to update full REST API, really
+	  
 0.03  Mon Mar  6 12:34:23 2006
 	- Removed the stub C<preprocess_results_page> since we never used it.
 	- Allowed C<native_query> and C<native_setup_search> to take a list as well as a hash ref

@@ -7,38 +7,59 @@
 
 use Data::Dumper;
 use lib '../lib';
-use Test::More tests => 1;
-BEGIN { use_ok('WWW::Search::TheITJobBoard' => 0.03) };
+use Test::More;
 
- __END__
+BEGIN {
+	use_ok('WWW::Search::TheITJobBoard' => 0.04);
+};
 
-my $oSearch = WWW::Search->new('TheITJobBoard', _debug=>10, detailed=>1,);
-isa_ok($oSearch, 'WWW::Search::TheITJobBoard');
-is($oSearch->{detailed}, 1, 'Passed arg');
+BEGIN {
+	eval { use LWP::UserAgent };
+	if ($@){
+		plan skip_all => "LWP not found";
+	} else {
+		my $ua = LWP::UserAgent->new;
+		$ua->timeout(10);
+		$ua->env_proxy;
+		my $response = $ua->get('http://search.cpan.org/');
+		if (not $response or $response->is_error ) {
+			plan skip_all => "LWP cannot get cpan, guess we're not able to get online";
+		} else {
+			plan tests => 6;
+			pass('can get cpan with LWP-UserAgent');
+		}
+	}
+}
+
+
+
+
+my $s = WWW::Search->new('TheITJobBoard', _debug=>0, detailed=>1,);
+isa_ok($s, 'WWW::Search::TheITJobBoard');
+is($s->{detailed}, 1, 'Passed arg');
 is(WWW::Search::TheITJobBoard::CONTRACT, 1, 'Constants');
 
-my $sQuery = WWW::Search::escape_query("perl html");
-ok(defined($sQuery),'Query escaped');
+my $q = WWW::Search::escape_query("perl html");
+ok(defined($q),'Query escaped');
+is($q, 'perl+html', 'Query value');
 
-warn Dumper $oSearch;
+__END__
 
-ok(defined($oSearch->native_query($sQuery,
+# diag Dumper $s;
+
+ok(defined($s->native_query($q,
 	jobtype			=> WWW::Search::TheITJobBoard::CONTRACT,
 	'location[]'	=> 180,
 	orderby			=> WWW::Search::TheITJobBoard::NONAGENCY,
 )),'Native query');
 
 my $hits = 0;
-while ( my $r = $oSearch->next_result() ){
+while ( my $r = $s->next_result() ){
 	++$hits;
 	isa_ok($r, 'WWW::SearchResult');
 }
 
-warn Dumper $oSearch;
-warn "Got $hits";
+diag Dumper $s;
+diag "Got $hits";
 
-#########################
-
-# Insert your test code below, the Test::More module is use()ed here so read
-# its man page ( perldoc Test::More ) for help writing this test script.
 
