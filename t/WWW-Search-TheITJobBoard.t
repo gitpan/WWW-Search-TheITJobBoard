@@ -10,29 +10,30 @@ use lib '../lib';
 use Test::More;
 
 BEGIN {
-	use_ok('WWW::Search::TheITJobBoard' => 0.04);
-};
-
-BEGIN {
 	eval { use LWP::UserAgent };
 	if ($@){
-		plan skip_all => "LWP not found";
-	} else {
+		diag "LWP not found";
+		plan tests => 1;
+		use_ok('WWW::Search::TheITJobBoard' => 0.04);
+		exit;
+	}
+	else {
 		my $ua = LWP::UserAgent->new;
 		$ua->timeout(10);
 		$ua->env_proxy;
 		my $response = $ua->get('http://search.cpan.org/');
 		if (not $response or $response->is_error ) {
-			plan skip_all => "LWP cannot get cpan, guess we're not able to get online";
+			diag "LWP cannot get cpan, guess we're not able to get online";
+			plan tests => 1;
+			use_ok('WWW::Search::TheITJobBoard' => 0.04);
+			exit;
 		} else {
-			plan tests => 6;
+			plan tests => 7;
+			use_ok('WWW::Search::TheITJobBoard' => 0.04);
 			pass('can get cpan with LWP-UserAgent');
 		}
 	}
 }
-
-
-
 
 my $s = WWW::Search->new('TheITJobBoard', _debug=>0, detailed=>1,);
 isa_ok($s, 'WWW::Search::TheITJobBoard');

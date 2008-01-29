@@ -1,6 +1,9 @@
 Revision history for Perl extension WWW::Search::TheITJobBoard.
 
 0.04  29 January 2008 
+	- Test updated after cpantesters results
+	
+0.04  29 January 2008 
 	- Updated URI from .co.uk to .com to conform with site change
 	  ... ought to update full REST API, really
 	  
